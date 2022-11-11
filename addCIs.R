@@ -1,0 +1,10 @@
+addCIs<-function(df,Ys,Ns){
+  df$mean<-NA
+  df$upper<-NA
+  df$lower<-NA
+  CIs<-binom.confint(Ys,Ns,method="exact")
+  df$mean[Ns>0]<-CIs$mean[Ns>0]
+  df$upper[Ns>0]<-CIs$upper[Ns>0]
+  df$lower[Ns>0]<-CIs$lower[Ns>0]
+  return(df)
+}
