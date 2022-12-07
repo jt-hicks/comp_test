@@ -2,9 +2,9 @@ addCIs<-function(df,Ys,Ns){
   df$mean<-NA
   df$upper<-NA
   df$lower<-NA
-  CIs<-binom.confint(Ys,Ns,method="exact")
-  df$mean[Ns>0]<-CIs$mean[Ns>0]
-  df$upper[Ns>0]<-CIs$upper[Ns>0]
-  df$lower[Ns>0]<-CIs$lower[Ns>0]
+  CIs<-binom.confint(Ys[!is.na(Ys)],Ns[!is.na(Ns)],method="exact")
+  df[which(!is.na(Ns)),]$mean<-CIs$mean
+  df[which(!is.na(Ns)),]$upper<-CIs$upper
+  df[which(!is.na(Ns)),]$lower<-CIs$lower
   return(df)
 }
