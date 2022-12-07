@@ -24,7 +24,7 @@
 #' @export
 
 
-equilibrium_init_create_stripped <- function(age_vector, het_brackets,
+equilibrium_init_create_season <- function(age_vector, het_brackets,
                                              country = NULL, admin_unit = NULL, ft,
                                              EIR, model_param_list)
 {
