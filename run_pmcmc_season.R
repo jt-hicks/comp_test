@@ -13,7 +13,8 @@ run_pmcmc <- function(data_raw,
                       n_threads = 4,
                       country = NULL,
                       admin_unit = NULL,
-                      preyears = 2){
+                      preyears = 2,
+                      seasonality_on = 1){
   ######## run pMCMC with same model with same log(EIR) random walk but within odin.dust
   start_obs <- min(as.Date(data_raw$month))
   start_seas <- as.Date(paste0(year(start_obs)-preyears,'-01-01'))
@@ -62,7 +63,8 @@ run_pmcmc <- function(data_raw,
     mpl_pf <- model_param_list_create(EIR_SD=EIR_vol,
                                       max_EIR=max_EIR,
                                       pretime=pretime,
-                                      lag_ratesMos = 10)
+                                      lag_ratesMos = 10,
+                                      seasonality_on = seasonality_on)
     equilibrium_init_create_season(age_vector = init_age,
                                    EIR = init_EIR,
                                    ft = prop_treated,
