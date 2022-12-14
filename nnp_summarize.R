@@ -36,11 +36,15 @@ diag_plots <- lapply(1:10,function(i) create_diag_figs(nnp_result_list[[i]]))
 diag_pg_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pg_result_list[[i]]))
 diag_pgcorr_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgcorr_result_list[[i]]))
 diag_pgvol_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgvol_result_list[[i]]))
+diag_pgseas_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgseas_result_list[[i]]))
+diag_pgorig_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgorig_result_list[[i]]))
 
 windows(10,7)
 diag_pg_plots[10]
 diag_pgcorr_plots[9]
 diag_pgvol_plots[9]
+diag_pgseas_plots[10]
+diag_pgorig_plots[10]
 
 country <- 'BF'
 country <- 'MZ'
@@ -160,6 +164,9 @@ NG_prev_pgvol <- create_prev_plots(results = nnp_pgvol_result_list,data_list=nnp
 
 BF_prev_pgvol
 NG_prev_pgvol
+BF_prev_pgseas <- create_prev_plots(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='BF')
+MZ_prev_pgseas <- create_prev_plots(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='MZ')
+NG_prev_pgseas <- create_prev_plots(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='NG')
 
 windows(7,5)
 windows(10,7)
