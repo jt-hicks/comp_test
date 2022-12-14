@@ -101,6 +101,41 @@ nnp_pg_bulk_orig <- orig_obj$enqueue_bulk(1:10, function(i,data_site,country_lis
             n_threads = 16)
 },data_site=nnp_pg_list,country_list=country_list)
 
+orig_obj$login()
 orig_obj$cluster_load(TRUE)
 orig_obj$config
 nnp_pg_bulk_orig$status()
+nnp_pg_bulk_orig$times()
+nnp_pg_bulk_orig$tasks$f494d6b4e400f7389d0024c854b5dcf4$log()
+
+nnp_pgorig_result_list <- lapply(1:10, function(id){
+  nnp_pg_bulk_orig$tasks[[id]]$result()
+})
+saveRDS(nnp_pgorig_result_list,'nnp_pgorig_results_081222.RDS')
+
+##Run a flat seasonality curve to see if it produces same as original run
+seas_obj$login()
+seas_obj$cluster_load(TRUE)
+
+nnp_pgflat_bulk <- seas_obj$enqueue_bulk(1:10, function(i,data_site,country_list,admin_unit_list){
+  run_pmcmc(data = data_site[[i]],
+            n_particles = 200,
+            proposal_matrix = matrix(c(0.0336,-0.000589,-0.000589,0.049420),nrow=2),
+            max_EIR=1000,
+            max_steps = 1e7,
+            atol = 1e-5,
+            rtol = 1e-6,
+            n_steps = 1000,
+            n_threads = 16,
+            country = country_list[i],
+            admin_unit = admin_unit_list[i],
+            preyears = 2,
+            seasonality_on = 0)
+},data_site=nnp_pg_list,country_list=country_list,admin_unit_list=admin_unit_list)
+
+nnp_pgflat_bulk$status()
+nnp_pgflat_result_list <- lapply(1:10, function(id){
+  nnp_pgflat_bulk$tasks[[id]]$result()
+})
+
+saveRDS(nnp_pgflat_result_list,'nnp_pgseas_equil_results_081222.RDS')
