@@ -239,7 +239,7 @@ update(log_EIR) <-if(t<pretime) check_log_EIR else min(log_EIR+rnorm(0,1)*EIR_SD
 # EIR[,] <- exp(log_EIR)*rel_foi[j] * foi_age[i]
 EIR[,] <- if(t>pretime) exp(log_EIR)*rel_foi[j] * foi_age[i] else rel_foi[j] * foi_age[i]* Iv/omega
 output(log_eir)<-log_EIR
-output(EIR_out) <- if(t>pretime) exp(log_EIR) else Iv/omega
+output(EIR_out) <- if(t>pretime) exp(log_EIR)*DY else Iv*DY/omega
 #output(EIR_out) <- exp(log_EIR)*DY
 
 #EIR_td<-interpolate(EIR_times, EIR_valsd, "constant")
@@ -276,8 +276,9 @@ ssb1 <- user()
 ssb2 <- user()
 ssb3 <- user()
 theta_c <- user()
+seasonality_on <- user()
 # Recreation of the rainfall function
-theta2 <- if(ssa0 == 0 && ssa1  == 0 && ssa2  == 0 && ssb1  == 0 && ssb2  == 0 && ssb3  == 0 && theta_c  == 0)
+theta2 <- if(seasonality_on == 0 || (ssa0 == 0 && ssa1  == 0 && ssa2  == 0 && ssb1  == 0 && ssb2  == 0 && ssb3  == 0 && theta_c  == 0))
 1 else max((ssa0+ssa1*cos(2*pi*t/365)+ssa2*cos(2*2*pi*t/365)+ssa3*cos(3*2*pi*t/365)+ssb1*sin(2*pi*t/365)+ssb2*sin(2*2*pi*t/365)+ ssb3*sin(3*2*pi*t/365) ) /theta_c,0.001)
 #theta2 <-1
 ##------------------------------------------------------------------------------
