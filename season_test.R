@@ -37,8 +37,9 @@ test <- run_pmcmc(data_raw = data_raw_bf_banfora,
           n_steps = 5,
           n_threads = 4,
           country = 'Burkina Faso',
-          admin_unit = 'Cascades')
-
+          admin_unit = 'Cascades',
+          seasonality_on = 0)
+to_return <- test
 
 1 - coda::rejectionRate(as.mcmc(to_return$mcmc))
 coda::effectiveSize(as.mcmc(to_return$mcmc))
