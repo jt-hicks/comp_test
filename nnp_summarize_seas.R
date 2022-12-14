@@ -34,12 +34,14 @@ diag_pg_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pg_result_list[[i]
 diag_pgcorr_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgcorr_result_list[[i]]))
 diag_pgvol_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgvol_result_list[[i]]))
 diag_pgseas_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgseas_result_list[[i]]))
+diag_pgequil_plots <- lapply(1:10,function(i) create_diag_figs(nnp_pgflat_result_list[[i]]))
 
 windows(10,7)
 diag_pg_plots[10]
 diag_pgcorr_plots[9]
 diag_pgvol_plots[9]
 diag_pgseas_plots[10]
+diag_pgequil_plots[10]
 
 country <- 'BF'
 country <- 'MZ'
@@ -868,13 +870,13 @@ ggplot(bf_hmis_sum)+
   scale_y_continuous(limits=c(0,900))+
   scale_color_manual(values=colors_nets)
 
-create_inc_plots_threads <- function(results,data_list=nnp_list,country=c('BF','MZ','NG')){
+create_inc_plots_threads <- function(results,data_list=nnp_list,country=c('BF','MZ','NG'),preyears=NULL){
   district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
                         MZ = c('Changara','Chemba','Guro'),
                         NG = c('Asa','Ejigbo','Ife North','Moro'))
-  dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
-                     MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
-                     NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+  # dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
+  #                    MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
+  #                    NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
   colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
                       MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
                       NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
@@ -900,9 +902,22 @@ create_inc_plots_threads <- function(results,data_list=nnp_list,country=c('BF','
                           district = character(),
                           month = character())
   for(i in start:(start+number-1)){
-    data_length <- nrow(data_list[[i]])
+    if(is.null(preyears)){
+      dates_list <- as.Date(as.yearmon(data_list[[i]]$month), frac = 0.5)
+      print('wrong')
+    }
+    else{
+      start_obs <- min(as.Date(as.yearmon(data_list[[i]]$month), frac = 0.5))
+      start_seas <- as.Date(paste0(year(start_obs)-preyears,'-01-01'))
+      
+      dates_list <- c(seq.Date(start_seas,start_obs,by='month'),
+                      as.Date(as.yearmon(data_list[[i]]$month), frac = 0.5))
+      dates_list <- dates_list[-1]
+      print(dates_list)
+    }
+    data_length <- length(dates_list)
     
-    inc_history <- data.frame(t(results[[i]]$history['inc', 51:1000, -1]))
+    inc_history <- data.frame(t(results[[i]]$history['inc', 51:1000, ]))
     inc_history_obs <- inc_history[(nrow(inc_history)-data_length+1):nrow(inc_history),]
     
     long_inc_sum <- inc_history_obs%>%
@@ -915,7 +930,7 @@ create_inc_plots_threads <- function(results,data_list=nnp_list,country=c('BF','
                 upper=quantile(value,probs=0.975)*10000*30,
                 lower=quantile(value,probs=0.025)*10000*30)%>%
       mutate(district = districts[[i-start+1]],
-             month = as.Date(as.yearmon(data_list[[i]]$month), frac = 0.5))
+             month = as.Date(dates_list))
     df <- rbind(df,long_inc_sum)
     
     inc_sample <- inc_history_obs[, sample(ncol(inc_history_obs), 100)] %>%
@@ -924,7 +939,7 @@ create_inc_plots_threads <- function(results,data_list=nnp_list,country=c('BF','
       rename(time=t)%>%
       mutate(value = value*10000*30,
              district = districts[[i-start+1]],
-             month = rep(as.Date(as.yearmon(data_list[[i]]$month), frac = 0.5),100))
+             month = rep(as.Date(dates_list),100))
     df_sample <- rbind(df_sample,inc_sample)
     
     
@@ -937,12 +952,12 @@ create_inc_plots_threads <- function(results,data_list=nnp_list,country=c('BF','
       scale_y_continuous(limits = c(0,3750)),
     MZ = ggplot(df)+
       annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-1'), ymin = 0, ymax = 400,alpha = .1,fill = "#999999")+
-      scale_y_continuous(limits=c(0,3750))+
-      coord_cartesian(ylim=c(0, 400)),
+      scale_y_continuous(limits=c(0,3750)),
+      # coord_cartesian(ylim=c(0, 400)),
     NG = ggplot(df)+
       annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")+
-      scale_y_continuous(limits=c(0,3750))+
-      coord_cartesian(ylim=c(0, 1000))
+      scale_y_continuous(limits=c(0,3750))
+      # coord_cartesian(ylim=c(0, 1000))
     
   )
   inc_plot <- annotations[[country]]+
@@ -975,8 +990,11 @@ MZ_inc_pgvol_threads <- create_inc_plots_threads(results = nnp_pgvol_result_list
 NG_inc_pgvol_threads <- create_inc_plots_threads(results = nnp_pgvol_result_list,country='NG')
 
 BF_inc_pgseas_threads <- create_inc_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='BF')
+BF_inc_pgseas_threads_pre <- create_inc_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='BF',preyears = 2)
 MZ_inc_pgseas_threads <- create_inc_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='MZ')
+MZ_inc_pgseas_threads_pre <- create_inc_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='MZ',preyears = 2)
 NG_inc_pgseas_threads <- create_inc_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='NG')
+NG_inc_pgseas_threads_pre <- create_inc_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='NG',preyears = 2)
 
 
 create_obsinc_plots <- function(results,country=c('BF','MZ','NG')){
@@ -1056,3 +1074,302 @@ pois.daly(bf_hmis_forplot$Confirmed[1],bf_hmis_forplot$Population[1])
 windows(10,10)
 BF_inc_pgvol_threads/BF_obsinc_plot + plot_layout(guides = "collect")
 NG_inc_pgvol_threads / NG_obsinc_plot + plot_layout(guides = "collect")
+
+create_eir_plots_threads <- function(results,data_list=nnp_list,country=c('BF','MZ','NG'),preyears=NULL){
+  district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
+                        MZ = c('Changara','Chemba','Guro'),
+                        NG = c('Asa','Ejigbo','Ife North','Moro'))
+  # dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
+  #                    MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
+  #                    NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+  colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
+                      MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
+                      NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
+  
+  start_list <- c(BF = 1, MZ = 4, NG = 7)
+  number_list <- c(BF = 3, MZ = 3, NG = 4)
+  
+  districts <- district_list[[country]]
+  start <- start_list[[country]]
+  number <- number_list[[country]]
+  colors <- colors_list[[country]]
+  
+  df <- data.frame(time = integer(),
+                   median = numeric(),
+                   mean = numeric(),
+                   upper = numeric(),
+                   lower = numeric(),
+                   district = character(),
+                   month = character())
+  df_sample <- data.frame(time = integer(),
+                          value = numeric(),
+                          variable = character(),
+                          district = character(),
+                          month = character())
+  for(i in start:(start+number-1)){
+    if(is.null(preyears)){
+      dates_list <- as.Date(as.yearmon(data_list[[i]]$month), frac = 0.5)
+    }
+    else{
+      start_obs <- min(as.Date(as.yearmon(data_list[[i]]$month), frac = 0.5))
+      start_seas <- as.Date(paste0(year(start_obs)-preyears,'-01-01'))
+      
+      dates_list <- c(seq.Date(start_seas,start_obs,by='month'),
+                      as.Date(as.yearmon(data_list[[i]]$month), frac = 0.5))
+      dates_list <- dates_list[-1]
+    }
+    data_length <- length(dates_list)
+    
+    eir_history <- data.frame(t(results[[i]]$history['EIR', 51:1000, ]))
+    eir_history_obs <- eir_history[(nrow(eir_history)-data_length+1):nrow(eir_history),]
+    
+    long_eir_sum <- eir_history_obs%>%
+      mutate(t=c(1:nrow(eir_history_obs)))%>%
+      melt(id='t')%>%
+      rename(time=t)%>%
+      group_by(time)%>%
+      summarise(median=median(value),
+                mean=mean(value),
+                upper=quantile(value,probs=0.975),
+                lower=quantile(value,probs=0.025))%>%
+      mutate(district = districts[[i-start+1]],
+             month = as.Date(dates_list))
+    df <- rbind(df,long_eir_sum)
+    
+    eir_sample <- eir_history_obs[, sample(ncol(eir_history_obs), 100)] %>%
+      mutate(t=c(1:nrow(eir_history_obs)))%>%
+      melt(id='t')%>%
+      rename(time=t)%>%
+      mutate(value = value,
+             district = districts[[i-start+1]],
+             month = rep(as.Date(dates_list),100))
+    df_sample <- rbind(df_sample,eir_sample)
+    
+  }
+  # ratio <- 1.5 * max(df$upper)/max(df_eir$median)
+  annotations <- list(
+    BF = ggplot(df)+
+      annotate("rect", xmin = as.Date('2020-9-1'), xmax = as.Date('2020-10-1'), ymin = 0.0001, ymax = 1000,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2021-6-1'), xmax = as.Date('2021-10-1'), ymin = 0.0001, ymax = 1000,alpha = .1,fill = "#999999")+
+      scale_y_continuous(limits = c(0.0001,1000))+
+      coord_cartesian(ylim=c(0.0001, 1000)),
+    MZ = ggplot(df)+
+      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-1'), ymin = 0.0001, ymax = 1000,alpha = .1,fill = "#999999")+
+      scale_y_continuous(limits=c(0.0001,1000))+
+      coord_cartesian(ylim=c(0.0001, 1000)),
+    # coord_cartesian(ylim=c(0, 400)),
+    NG = ggplot(df)+
+      annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-1'), ymin = 0.0001, ymax = 1000,alpha = .1,fill = "#999999")+
+      scale_y_continuous(limits=c(0.0001,1000))+
+      coord_cartesian(ylim=c(0.0001, 1000))
+    # coord_cartesian(ylim=c(0, 1000))
+    
+  )
+  eir_plot <- annotations[[country]]+
+    geom_line(data=df_sample,aes(x=month,y=value*365,color=district,group=variable),alpha=0.1)+
+    # geom_ribbon(aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
+    geom_line(aes(x=month,y=median*365,color=district,group=district),size=1)+
+    # geom_line(data=df_eir,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    # scale_y_continuous(limits=c(0,500))+
+    scale_y_log10(breaks=c(.001,0.01,.1,1,10,100,1000),labels=c(.001,0.01,.1,1,10,100,1000))+
+    # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
+    labs(x='Date',y='EIR')+
+    # labs(x='Date',y='EIR')+
+    facet_grid(~district)+
+    theme(legend.title = element_blank(),
+          axis.title.x = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(size = 0.5), 
+          axis.ticks.length = unit(3, "pt"))
+  # +
+  #   coord_cartesian(ylim=c(0, 40))
+  eir_plot
+}
+
+windows(7,5)
+
+BF_eir_pgseas_threads <- create_eir_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='BF')
+BF_eir_pgseas_threads_pre <- create_eir_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='BF',preyears = 2)
+MZ_eir_pgseas_threads <- create_eir_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='MZ')
+MZ_eir_pgseas_threads_pre <- create_eir_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='MZ',preyears = 2)
+NG_eir_pgseas_threads <- create_eir_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='NG')
+NG_eir_pgseas_threads_pre <- create_eir_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,country='NG',preyears = 2)
+
+##Incidence plots with comparisons to original run and data
+create_inccomp_plots_threads <- function(results,results_orig,inc_obs=NULL,data_list=nnp_list,country=c('BF','MZ','NG'),preyears=NULL){
+  district_list <- list(BF = c('Banfora','Gaoua','Orodara'),
+                        MZ = c('Changara','Chemba','Guro'),
+                        NG = c('Asa','Ejigbo','Ife North','Moro'))
+  # dates_list <- list(BF = seq(as.Date('2020-9-1'),as.Date('2022-5-1'),by='months'),
+  #                    MZ = seq(as.Date('2020-12-1'),as.Date('2021-9-1'),by='months'),
+  #                    NG = seq(as.Date('2020-11-1'),as.Date('2021-12-1'),by='months'))
+  colors_list <- list(BF = c(Banfora = "#1B9E77", Gaoua = "#999999", Orodara = "#D95F02"),
+                      MZ = c(Changara = "#D95F02", Chemba = "#999999", Guro = "#1B9E77"),
+                      NG = c(Asa = "#1B9E77", Ejigbo = "#999999", `Ife North` = "#D95F02", Moro = "#377EB8"))
+  
+  start_list <- c(BF = 1, MZ = 4, NG = 7)
+  number_list <- c(BF = 3, MZ = 3, NG = 4)
+  
+  districts <- district_list[[country]]
+  start <- start_list[[country]]
+  number <- number_list[[country]]
+  colors <- colors_list[[country]]
+  
+  df <- data.frame(time = integer(),
+                   median = numeric(),
+                   mean = numeric(),
+                   upper = numeric(),
+                   lower = numeric(),
+                   district = character(),
+                   month = character())
+  df_orig <- data.frame(time = integer(),
+                   median = numeric(),
+                   mean = numeric(),
+                   upper = numeric(),
+                   lower = numeric(),
+                   district = character(),
+                   month = character())
+  df_sample <- data.frame(time = integer(),
+                          value = numeric(),
+                          variable = character(),
+                          district = character(),
+                          month = character())
+  for(i in start:(start+number-1)){
+    obs_dates <- as.Date(as.yearmon(data_list[[i]]$month), frac = 0.5)
+    start_obs <- min(obs_dates)
+    
+    if(is.null(preyears)){
+      dates_list <- obs_dates
+    }
+    else{
+      start_seas <- as.Date(paste0(year(start_obs)-preyears,'-01-01'))
+      dates_list <- c(seq.Date(start_seas,start_obs,by='month'),
+                      obs_dates)
+      dates_list <- dates_list[-1]
+    }
+    data_length <- length(dates_list)
+    
+    ##Estimated incidence for seasonality model
+    inc_history <- data.frame(t(results[[i]]$history['inc', 51:1000, ]))
+    inc_history_obs <- inc_history[(nrow(inc_history)-data_length+1):nrow(inc_history),]
+    
+    long_inc_sum <- inc_history_obs%>%
+      mutate(t=c(1:nrow(inc_history_obs)))%>%
+      melt(id='t')%>%
+      rename(time=t)%>%
+      group_by(time)%>%
+      summarise(median=median(value)*10000*30,
+                mean=mean(value)*10000*30,
+                upper=quantile(value,probs=0.975)*10000*30,
+                lower=quantile(value,probs=0.025)*10000*30)%>%
+      mutate(district = districts[[i-start+1]],
+             month = as.Date(dates_list))
+    df <- rbind(df,long_inc_sum)
+    
+    inc_sample <- inc_history_obs[, sample(ncol(inc_history_obs), 100)] %>%
+      mutate(t=c(1:nrow(inc_history_obs)))%>%
+      melt(id='t')%>%
+      rename(time=t)%>%
+      mutate(value = value*10000*30,
+             district = districts[[i-start+1]],
+             month = rep(as.Date(dates_list),100))
+    df_sample <- rbind(df_sample,inc_sample)
+    
+    ##Estimated incidence for original model
+    inc_history_orig <- data.frame(t(results_orig[[i]]$history['inc', 51:1000, -1]))
+
+    long_inc_sum_orig <- inc_history_orig%>%
+      mutate(t=c(1:nrow(inc_history_orig)))%>%
+      melt(id='t')%>%
+      rename(time=t)%>%
+      group_by(time)%>%
+      summarise(median=median(value)*10000*30,
+                mean=mean(value)*10000*30,
+                upper=quantile(value,probs=0.975)*10000*30,
+                lower=quantile(value,probs=0.025)*10000*30)%>%
+      mutate(district = districts[[i-start+1]],
+             month = as.Date(obs_dates))
+    df_orig <- rbind(df_orig,long_inc_sum_orig)
+    
+    
+  }
+  # ratio <- 1.5 * max(df$upper)/max(df_eir$median)
+  annotations <- list(
+    BF = ggplot(df)+
+      annotate("rect", xmin = as.Date('2020-9-1'), xmax = as.Date('2020-10-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")+
+      annotate("rect", xmin = as.Date('2021-6-1'), xmax = as.Date('2021-10-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")+
+      scale_y_continuous(limits = c(0,3750)),
+    MZ = ggplot(df)+
+      annotate("rect", xmin = as.Date('2021-1-1'), xmax = as.Date('2021-6-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")+
+      scale_y_continuous(limits=c(0,10000))+
+      coord_cartesian(ylim=c(0, 3750)),
+    NG = ggplot(df)+
+      annotate("rect", xmin = as.Date('2021-7-1'), xmax = as.Date('2021-11-1'), ymin = 0, ymax = 3750,alpha = .1,fill = "#999999")+
+      scale_y_continuous(limits=c(0,3750))
+    # coord_cartesian(ylim=c(0, 1000))
+  )
+  inc_plot <- annotations[[country]]+
+    geom_line(data=df_sample,aes(x=month,y=value,color=district,group=variable),alpha=0.1)+
+    geom_line(aes(x=month,y=median,color=district,group=district),size=1)+
+    geom_ribbon(data=df_orig,aes(x=month,ymin=lower,ymax=upper,fill=district,group=district),alpha=0.2)+
+    geom_line(data=df_orig,aes(x=month,y=median,color=district,group=district),size=1,linetype='dashed')+
+    scale_color_manual(values=colors)+
+    scale_fill_manual(values=colors)+
+    scale_x_date(date_labels = "%b %Y")+
+    # scale_y_continuous(limits=c(0,500))+
+    # scale_y_log10(breaks=c(.001,0.01,.1,1,10,100,1000),labels=c(.001,0.01,.1,1,10,100,1000))+
+    # scale_y_continuous(sec.axis = sec_axis(~ . /ratio, name = "EIR"))+
+    labs(x='Date',y='Estimated Incidence\nper 10,000 person-months')+
+    # labs(x='Date',y='EIR')+
+    facet_grid(~district)+
+    theme(legend.title = element_blank(),
+          axis.title.x = element_blank(),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.ticks.x = element_line(size = 0.5), 
+          axis.ticks.length = unit(3, "pt"))
+  # +
+  #   coord_cartesian(ylim=c(0, 40))
+  
+  if(is.null(inc_obs)){
+    return(inc_plot)
+  }
+  else{
+    return(inc_plot+geom_point(data=inc_obs,aes(x=date_ex,y=inc,color=district,group=district),size=1))
+  }
+}
+
+bf_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl160822/Burkina Faso/Routine HMIS/BF_Routine_Mar2022.xlsx')
+ng_hmis <- readxl::read_excel('C:/Users/jthicks/OneDrive - Imperial College London/Imperial_ResearchAssociate/PregnancyModel/PATH/Imperial College (ANC)_data_dl160822/Nigeria/NNP Nigeria HMIS Data 2019-2022 - LGA.xlsx')
+bf_hmis$inc <- bf_hmis$Confirmed/bf_hmis$Population*10000
+library(epitools)
+source('addCIs_inc.R')
+bf_hmis$date = as.yearmon(paste(bf_hmis$Year, bf_hmis$Month), "%Y %b")
+bf_hmis_forplot <- bf_hmis[bf_hmis$Distrist %in% c('Banfora','Gaoua','Orodara')&bf_hmis$date>=as.yearmon('Sep 2020')&
+                             bf_hmis$date<=as.yearmon('May 2022')&!is.na(bf_hmis$Confirmed),]
+bf_hmis_forplot <- addCIs_inc(bf_hmis_forplot,bf_hmis_forplot$Confirmed,bf_hmis_forplot$Population)
+bf_hmis_forplot <-bf_hmis_forplot %>%
+  mutate(date_ex = as.Date(date, frac = 0.5))%>%
+  rename(district=Distrist)
+
+ng_hmis_forplot <- ng_hmis%>%
+  mutate(date=as.Date(period))%>%
+  filter(date>=as.Date('2020-11-1')&date<=as.Date('2021-12-1'))%>%
+  mutate(date_ex = as.Date(as.yearmon(as.Date(date)),frac=0.5))%>%
+  rename(district = lga,
+         inc = incidence)
+
+NG_obsinc_plot <- create_obsinc_plots(ng_hmis_forplot,'NG')
+
+
+windows(7,5)
+BF_eir_pgseas_threads <- create_inccomp_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,results_orig = nnp_pgorig_result_list ,inc_obs = bf_hmis_forplot,country='BF')
+MZ_eir_pgseas_threads <- create_inccomp_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,results_orig = nnp_pgorig_result_list ,country='MZ')
+NG_eir_pgseas_threads <- create_inccomp_plots_threads(results = nnp_pgseas_result_list,data_list=nnp_pg_list,results_orig = nnp_pgorig_result_list ,inc_obs = ng_hmis_forplot,country='NG')
+
+nnp_pgflat_result_list
+BF_inc_pgequil_threads <- create_inccomp_plots_threads(results = nnp_pgflat_result_list,data_list=nnp_pg_list,results_orig = nnp_pgorig_result_list ,inc_obs = bf_hmis_forplot,country='BF')
+MZ_inc_pgequil_threads <- create_inccomp_plots_threads(results = nnp_pgflat_result_list,data_list=nnp_pg_list,results_orig = nnp_pgorig_result_list ,country='MZ')
+NG_inc_pgequil_threads <- create_inccomp_plots_threads(results = nnp_pgflat_result_list,data_list=nnp_pg_list,results_orig = nnp_pgorig_result_list ,inc_obs = ng_hmis_forplot,country='NG')
